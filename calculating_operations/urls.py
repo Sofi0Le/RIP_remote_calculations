@@ -23,4 +23,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('operation/<int:id>/', views.detailed_operations_page, name='detailed_operations_page'),
     path('', views.operations_page, name='operations_page'),
+    path('update/<int:id>', views.update_operations_page, name='update_operations_page'),
 ]

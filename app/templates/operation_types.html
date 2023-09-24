@@ -13,20 +13,23 @@
                 </div>
             </form>
         
-            {% for operation in filtered_data %}    
+            {% for operation in filtered_data.operations_to_perform %}  
+            {% if operation.calculation_status == 'Active' %}  
             <div class="col">
                 <div class="card" data-url="https://google.com">
                     <div class="card-body">
-                        <h5 class="card-title">{{ operation.type }}</h5>
+                        <h5 class="card-title">{{ operation.calculation_name }}</h5>
                         <h4 class="truncate-text">
-                          <p class="card-text">{{ operation.description }}</p>
+                          <p class="card-text">{{ operation.calculation_description }}</p>
                         </h4>
                     </div>
+                    <a class="delete-button" href="{% url 'update_operations_page' operation.calculation_id %}">🗑️</a>
                     <div class="card-button">
-                        <a href="{% url 'detailed_operations_page' operation.id %}" class="btn btn-primary">Подробнее</a>
+                        <a href="{% url 'detailed_operations_page' operation.calculation_id %}" class="btn btn-primary">Подробнее</a>
                     </div>
                 </div>
             </div>
+            {% endif %}
             {% endfor %}
         </div>
     </div>

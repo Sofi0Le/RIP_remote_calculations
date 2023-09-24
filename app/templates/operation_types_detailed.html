@@ -1,19 +1,18 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}{{ operations_to_perform.type }}{{ data.id }}{% endblock %}
+{% block title %}{{ operations_to_perform.calculation_name }}{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" type="text/css" href="{% static 'css/view_service.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/calculation_page_detailed.css' %}">
 
 <div class="container">
     <div class="row">
         <div class="col">
             <div class="card">
-                <img class="card-img-top" src="{% static operations_to_perform.image_url %}" alt="{{ operations_to_perform.type }}">
-                <!--<img src="{% static operations_to_perform.image_url %}" alt="{{ operations_to_perform.type }}" class="card-img-top">-->
+                <img class="card-img-top" src="{% static operations_to_perform.calculation_image_url %}" alt="{{ operations_to_perform.calculation_name }}">
                 <div class="card-body">
-                    <h5 class="card-title">{{ operations_to_perform.type }}</h5>
-                    <p class="card-text">{{ operations_to_perform.description }}</p>
+                    <h5 class="card-title">{{ operations_to_perform.calculation_name }}</h5>
+                    <p class="card-text">{{ operations_to_perform.calculation_description }}</p>
                 <div class="card-button">
                     <a class="btn btn-back" onclick="history.back(); return false;">Назад</a>
                     <a class="btn btn-back-all" href="{% url 'operations_page' %}">Вернуться ко всем услугам</a>
