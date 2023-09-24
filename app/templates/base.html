@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <title>{% block title %}Удалённые вычисления{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}"> <!-- Подключение внешнего CSS-файла -->
+    <link rel="icon" href="{% static 'images/logo.png' %}" type="image/x-icon">    
+
+</head>
+<body>
+    <header>
+        <a href="/"> <!-- Добавьте ссылку на главную страницу здесь -->
+            <img src="{% static 'images/logo.png' %}" alt="Логотип" class="logo"><!-- Замените на ваш путь к логотипу -->
+        </a>
+        <h1>Система заявок на вычисления</h1>
+    </header>    
+    <div class="container">
+        {% block content %}
+
+        {% endblock%}
+    </div>
+    
+</body>
+</html>

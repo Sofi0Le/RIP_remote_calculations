@@ -1,0 +1,7 @@
+.card img {
+    width: auto;
+    max-width: 300;
+    max-height: 250;
+    height: auto;
+    flex-shrink: 0; /* Запрещаем картинке уменьшаться при недостатке места */
+}
