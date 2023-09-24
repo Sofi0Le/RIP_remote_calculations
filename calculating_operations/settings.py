@@ -73,10 +73,34 @@ WSGI_APPLICATION = 'calculating_operations.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
+'''DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}'''
+
+'''DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'calculating_operations',
+        'USER': 'sofi_web',
+        'PASSWORD': 'sleep',
+        'HOST': 'localhost',
+        'PORT': 5432, # Стандартный порт PostgreSQL
+        'OPTIONS': {'charset': 'utf8'},
+        'TEST_CHARSET': 'utf8',
+    }
+}'''
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'remote_calculations',
+        'USER': 'sofi_w',
+        'PASSWORD': 'sleep',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
