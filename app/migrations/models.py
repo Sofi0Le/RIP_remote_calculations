@@ -8,6 +8,7 @@ class ApplicationForCalculation(models.Model):
     date_application_accept = models.DateField(blank=True, null=True)
     date_application_complete = models.DateField(blank=True, null=True)
     application_status = models.TextField()  # This field type is a guess.
+    moderator = models.ForeignKey('Users', models.DO_NOTHING, related_name='applicationforcalculation_moderator_set', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -23,6 +24,7 @@ class ApplicationsCalculations(models.Model):
         db_table = 'applications_calculations'
 
 
+
 class CalculationTypes(models.Model):
     calculation_id = models.AutoField(primary_key=True)
     calculation_name = models.CharField(max_length=30)
@@ -35,6 +37,7 @@ class CalculationTypes(models.Model):
         db_table = 'calculation_types'
 
 
+
 class Users(models.Model):
     user_id = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=20)
@@ -42,7 +45,7 @@ class Users(models.Model):
     email = models.CharField(unique=True, max_length=30, blank=True, null=True)
     login = models.CharField(unique=True, max_length=40, blank=True, null=True)
     password = models.CharField(unique=True, max_length=30, blank=True, null=True)
-    role = models.CharField(blank=True, null=True)
+    role = models.TextField(blank=True, null=True)  # This field type is a guess.
 
     class Meta:
         managed = False

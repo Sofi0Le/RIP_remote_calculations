@@ -111,8 +111,8 @@
         margin-bottom: 10px;
         vertical-align: middle;
         width: auto;
-        max-width: 350px;
-        max-height: 350px;
+        max-width: 250px;
+        max-height: 250px;
         height: auto;
         flex-shrink: 0; 
     }
