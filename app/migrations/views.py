@@ -39,4 +39,4 @@ def delete_operation(id):
 def update_operations_page(request, id):
     if not delete_operation(id):
         pass
-    return redirect(reverse('operations_page'))
+    return redirect('/')
