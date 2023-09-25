@@ -16,6 +16,7 @@
             {% for operation in filtered_data %}    
             <div class="col">
                 <div class="card" data-url="https://google.com">
+                    <img src="{{ operation.image_url }}" alt="{{ operation.type }}" class="card-img-top">
                     <div class="card-body">
                         <h5 class="card-title">{{ operation.type }}</h5>
                         <h4 class="truncate-text">
