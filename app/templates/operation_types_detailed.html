@@ -3,14 +3,13 @@
 {% block title %}{{ operations_to_perform.type }}{{ data.id }}{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" type="text/css" href="{% static 'css/view_service.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/calculation_page_detailed.css' %}">
 
 <div class="container">
     <div class="row">
         <div class="col">
             <div class="card">
                 <img class="card-img-top" src="{% static operations_to_perform.image_url %}" alt="{{ operations_to_perform.type }}">
-                <!--<img src="{% static operations_to_perform.image_url %}" alt="{{ operations_to_perform.type }}" class="card-img-top">-->
                 <div class="card-body">
                     <h5 class="card-title">{{ operations_to_perform.type }}</h5>
                     <p class="card-text">{{ operations_to_perform.description }}</p>
