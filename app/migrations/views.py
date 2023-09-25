@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.urls import reverse
-from django.db.models import Q
 import psycopg2
 
 from app.migrations import models
@@ -16,7 +15,7 @@ def operations_page(request):
 
     if query:
         # Фильтрую данные, при этом учитываю поле "calculation_name"
-        filtered_data = {'operations_to_perform': models.CalculationTypes.objects.filter(Q(calculation_name__icontains=query))}
+        filtered_data = {'operations_to_perform': models.CalculationTypes.objects.filter(calculation_name__icontains=query)}
 
     else:
         filtered_data = {'operations_to_perform': models.CalculationTypes.objects.all()}
