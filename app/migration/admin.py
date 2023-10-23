@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from app.migrations import models
+from app.migration import models
 
 
 admin.site.register(models.ApplicationForCalculation)

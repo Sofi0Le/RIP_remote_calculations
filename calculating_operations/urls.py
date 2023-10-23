@@ -15,13 +15,28 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+from rest_framework import routers
 
-from app.migrations import views
+from app.migration import views
+
+router = routers.DefaultRouter()
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('operation/<int:id>/', views.detailed_operations_page, name='detailed_operations_page'),
-    path('', views.operations_page, name='operations_page'),
-    path('update/<int:id>', views.update_operations_page, name='update_operations_page'),
+    path('', include(router.urls)),
+    path(r"operations/", views.get_calculations_list, name='calculations_list'),
+    path(r'operations/<int:pk>/', views.get_calculations_detailed, name='calculation_type_detailed'),
+    path(r'operations/create/', views.create_calculation_type, name='create_calculation_type'),
+    path(r'operations/<int:pk>/edit/', views.change_calculation_type_data, name='change_calculation_type_data'),
+    path(r'operations/<int:pk>/delete/', views.delete_calculation, name='delete_calculation_type'),
+    path(r'operations/<int:pk>/add/', views.add_calculation_type, name='add_calculation_type'),
+
+    path(r"applications/", views.get_applications_list, name='applications_list'),
+    path(r"applications/<int:pk>/", views.get_application_detailed, name='get_application_detailed'),
+    path(r'applications/<int:pk>/change_inputs/', views.change_inputs_application, name='change_inputs_application'),
+    path(r'applications/<int:application_id>/operations_delete/<int:calculation_id>/', views.delete_calculation_from_application,name='delete_calculation_from_application'),
+    path(r'applications/<int:application_id>/delete/', views.delete_application_for_calculation, name='delete_application_for_calculation'),
+    path(r'applications/<int:pk>/change_status/moderator/', views.put_applications_moderator, name='application_status_by_moderator'),
+    path(r'applications/<int:pk>/change_status/client/', views.put_applications_client, name='application_status_by_client'),
 ]
