@@ -28,6 +28,11 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
+AWS_STORAGE_BUCKET_NAME = 'pictures'     # Бакет должен уже быть создан
+AWS_ACCESS_KEY_ID = 'minio'
+AWS_SECRET_ACCESS_KEY = 'minio124'
+AWS_S3_ENDPOINT_URL = 'http://127.0.0.1:9000'
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -120,7 +125,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+'''TIME_ZONE = 'UTC' '''
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 

@@ -101,7 +101,7 @@ class CalculationTypes(models.Model):
     calculation_id = models.AutoField(primary_key=True)
     calculation_name = models.CharField(max_length=30)
     calculation_description = models.CharField(max_length=1500)
-    calculation_image_url = models.CharField(max_length=50, default='../static/images/base.png')
+    calculation_image_url = models.CharField(max_length=50, default='base.png')
     calculation_status = models.TextField()  # This field type is a guess.
 
     class Meta:

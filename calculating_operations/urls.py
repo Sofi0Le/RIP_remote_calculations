@@ -31,6 +31,7 @@ urlpatterns = [
     path(r'operations/<int:pk>/edit/', views.change_calculation_type_data, name='change_calculation_type_data'),
     path(r'operations/<int:pk>/delete/', views.delete_calculation, name='delete_calculation_type'),
     path(r'operations/<int:pk>/add/', views.add_calculation_type, name='add_calculation_type'),
+    path(r'operations/<int:pk>/edit_im/', views.change_calculation_image, name='change_calculation_image'),
 
     path(r"applications/", views.get_applications_list, name='applications_list'),
     path(r"applications/<int:pk>/", views.get_application_detailed, name='get_application_detailed'),
@@ -39,4 +40,6 @@ urlpatterns = [
     path(r'applications/<int:application_id>/delete/', views.delete_application_for_calculation, name='delete_application_for_calculation'),
     path(r'applications/<int:pk>/change_status/moderator/', views.put_applications_moderator, name='application_status_by_moderator'),
     path(r'applications/<int:pk>/change_status/client/', views.put_applications_client, name='application_status_by_client'),
+
+    path(r'applications_calculations/<int:pk>/<int:calculation_id>/', views.edit_result_applications_calculations, name='edit_result_applications_calculations'),
 ]

@@ -5,6 +5,12 @@ from app.migration.models import Users
 from app.migration.models import ApplicationsCalculations
 
 class CalculationTypesSerializer(serializers.ModelSerializer):
+    full_url = serializers.SerializerMethodField()
+
+    def get_full_url(self, obj):
+        image_url = obj.calculation_image_url
+        custom_value = f"http://localhost:9000/pictures/{image_url}"
+        return custom_value
     class Meta:
         # Модель, которую мы сериализуем
         model = CalculationTypes
@@ -13,7 +19,8 @@ class CalculationTypesSerializer(serializers.ModelSerializer):
             "calculation_id",
             "calculation_name",
             "calculation_description",
-            "calculation_status"
+            "calculation_status",
+            "full_url"
         ]
 
 class UsersSerializer(serializers.ModelSerializer):
@@ -53,7 +60,7 @@ class ApplicationsCalculationsSerializer(serializers.ModelSerializer):
     calculation = CalculationTypesSerializer()
     class Meta:
         # Модель, которую мы сериализуем
-        model = CalculationTypes
+        model = ApplicationsCalculations
         # Поля, которые мы сериализуем
         fields = [
             "application_id",
@@ -65,7 +72,7 @@ class ApplicationsCalculationsSerializer(serializers.ModelSerializer):
         
 class ApplicationDetailedSerializer(serializers.ModelSerializer):
     user = UsersSerializer(read_only=True)
-    calculation_detailes = ApplicationsCalculationsSerializer(many=True, source='applicationscalculations_set')
+    calculation_detailes = serializers.SerializerMethodField()
 
     class Meta:
         model = ApplicationForCalculation
@@ -81,5 +88,14 @@ class ApplicationDetailedSerializer(serializers.ModelSerializer):
             "input_second_param",
             "calculation_detailes",
         ]
-        '''"input_first_param",
-            "input_second_param"'''
+
+    def get_calculation_detailes(self, obj):
+        # Retrieve the specific ApplicationsCalculations object you want to include
+        # For example, get the first one (you might want to adjust this logic based on your requirements)
+        applications_calculations_instance = ApplicationsCalculations.objects.filter(application=obj).first()
+        
+        # Serialize the specific ApplicationsCalculations instance
+        if applications_calculations_instance:
+            return ApplicationsCalculationsSerializer(applications_calculations_instance).data
+        else:
+            return None
