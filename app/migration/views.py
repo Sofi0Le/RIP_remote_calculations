@@ -5,17 +5,20 @@ from rest_framework import status
 from app.migration.serializer import CalculationTypesSerializer
 from app.migration.serializer import ApplicationSerializer
 from app.migration.serializer import ApplicationDetailedSerializer
+from app.migration.serializer import ApplicationsCalculationsSerializer
 from app.migration.models import CalculationTypes
 from app.migration.models import ApplicationForCalculation
 from app.migration.models import ApplicationsCalculations
 from app.migration.models import Users
+from django.utils import timezone
+
+from django.db.models import Q
 
 from minio import Minio
 import os
 from rest_framework.decorators import api_view
 from datetime import datetime
-
-from app.migration.s3 import delete_image_from_s3, upload_image_to_s3, get_image_from_s3
+from datetime import date
 
 client = Minio(endpoint="localhost:9000",   # адрес сервера
                access_key='minio',          # логин админа
@@ -117,22 +120,28 @@ def add_calculation_type(request, pk, format=None):
             print(calculation_status)
             if calculation_status != "Active":
                 return Response({'error': 'Calculation not found'}, status=status.HTTP_404_NOT_FOUND)
-            ApplicationsCalculations.objects.create(calculation=calculation_type, application=inserted_application)
+            ApplicationsCalculations.objects.create(calculation_id=calculation_id, application_id=inserted_application.application_id)
 
         return Response({'message': 'Calculation type added to the existing inserted application'}, status=status.HTTP_200_OK)
     else:
-        current_user = Users.objects.get(user_id=1) #????????
+        print('here')
+        current_user = Users.objects.get(user_id=2) #????????
+        print('here0')
         new_application = ApplicationForCalculation.objects.create(
             user=current_user,
-            application_status='Inserted'
+            application_status='Inserted',
+            date_application_create=datetime.now(),
+            moderator_id=1,
+            input_first_param=1,
+            input_second_param=2
         )
-
-        calculation_id = request.data.get('calculation_id')
+        print('here1')
+        #calculation_id = request.data['calculation_id']
         print(f"calculation_id = {calculation_id}")
         if calculation_id:
             try:
                 calculation_type = CalculationTypes.objects.get(calculation_id=calculation_id)
-                ApplicationsCalculations.objects.create(calculation_id=calculation_type, application_id=new_application)
+                ApplicationsCalculations.objects.create(calculation_id=calculation_id, application_id=new_application.application_id)
             except CalculationTypes.DoesNotExist:
                 new_application.delete()  
                 return Response({'error': 'Calculation type not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -231,9 +240,26 @@ def get_applications_list(request, format=None):
 @api_view(["Get"])
 def get_application_detailed(request, pk, format=None):
     application = get_object_or_404(ApplicationForCalculation, pk=pk)
-    serializer = ApplicationDetailedSerializer(application)
+    serializer = ApplicationSerializer(application)
+    applications_calculations = ApplicationsCalculations.objects.filter(application_id=pk)
+    serializer_apps_calcs = ApplicationsCalculationsSerializer(applications_calculations, many=True)
 
-    return Response(serializer.data)
+    filters = Q()
+    print("aaaa")
+    for app_calc in applications_calculations:
+        filters |= Q(calculation_id=app_calc.calculation_id)
+    print(filters)
+    if filters != Q():
+        calculation_type = CalculationTypes.objects.filter(filters)
+    else:
+        calculation_type = {}
+    serializer_calc_types = CalculationTypesSerializer(calculation_type, many=True)
+    apps_calcs_data = {
+        'application': serializer.data,
+        'calculation': serializer_calc_types.data
+    }
+    return Response(apps_calcs_data)
+    #return Response(serializer.data)
 
 @api_view(['PUT'])
 def change_inputs_application(request, pk, format=None):
@@ -294,6 +320,8 @@ def put_applications_moderator(request, pk, format=None):
     application = get_object_or_404(ApplicationForCalculation, pk=pk)
     print(application.application_status)
     print(f'_______{request.data}__________')
+    print(request.data['application_status'])
+    print(application.application_status)
     if request.data['application_status'] not in ['Finished', 'Canceled'] or application.application_status == 'Inserted':
         return Response({"error": "Неверный статус."}, status=400)
     application.application_status = request.data['application_status']
@@ -311,11 +339,18 @@ def put_applications_client(request, pk, format=None):
     """
     application = get_object_or_404(ApplicationForCalculation, pk=pk)
     print(f'_______{request.data}__________')
+    print('aaaaaaa')
+    print(request.data['application_status'])
+    print(application.application_status)
     if request.data['application_status'] != 'In service' or application.application_status != 'Inserted':
         return Response({"error": "Неверный статус."}, status=400)
+    print("ssssss")
     application.application_status = request.data['application_status']
-    application.date_application_accept = datetime.now()
+    print("ffffff")
+    application.date_application_accept = date.today()
+    print("wwwwwww")
     serializer = ApplicationSerializer(application, data=request.data, partial=True)
+    print("oooooo")
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)

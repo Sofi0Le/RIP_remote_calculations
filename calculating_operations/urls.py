@@ -36,10 +36,10 @@ urlpatterns = [
     path(r"applications/", views.get_applications_list, name='applications_list'),
     path(r"applications/<int:pk>/", views.get_application_detailed, name='get_application_detailed'),
     path(r'applications/<int:pk>/change_inputs/', views.change_inputs_application, name='change_inputs_application'),
-    path(r'applications/<int:application_id>/operations_delete/<int:calculation_id>/', views.delete_calculation_from_application,name='delete_calculation_from_application'),
     path(r'applications/<int:application_id>/delete/', views.delete_application_for_calculation, name='delete_application_for_calculation'),
     path(r'applications/<int:pk>/change_status/moderator/', views.put_applications_moderator, name='application_status_by_moderator'),
     path(r'applications/<int:pk>/change_status/client/', views.put_applications_client, name='application_status_by_client'),
 
     path(r'applications_calculations/<int:pk>/<int:calculation_id>/', views.edit_result_applications_calculations, name='edit_result_applications_calculations'),
+    path(r'applications_calculations/<int:application_id>/operations_delete/<int:calculation_id>/', views.delete_calculation_from_application,name='delete_calculation_from_application'),
 ]

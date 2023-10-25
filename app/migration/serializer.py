@@ -92,7 +92,7 @@ class ApplicationDetailedSerializer(serializers.ModelSerializer):
     def get_calculation_detailes(self, obj):
         # Retrieve the specific ApplicationsCalculations object you want to include
         # For example, get the first one (you might want to adjust this logic based on your requirements)
-        applications_calculations_instance = ApplicationsCalculations.objects.filter(application=obj).first()
+        applications_calculations_instance = ApplicationsCalculations.objects.filter(application=obj)
         
         # Serialize the specific ApplicationsCalculations instance
         if applications_calculations_instance:
