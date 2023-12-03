@@ -50,9 +50,14 @@ def get_calculations_list(request, format=None):
     #print(serializer)
     print(type(serializer.data))
     if inserted_application:
-        my_dict = [f'inserted application id = {inserted_application.application_id}', serializer.data]
+        '''my_dict = [f'inserted application id = {inserted_application.application_id}', serializer.data]'''
+        my_dict = {"inserted_application_id":inserted_application.application_id, "calculations": serializer.data}
         return Response(my_dict, template_name='tort')
-    return Response(serializer.data, template_name='tort')
+    # my_dict = [serializer.data]
+    # my_dict = {"calculations": serializer.data}
+    my_dict = {"inserted_application_id":None, "calculations": serializer.data}
+    return Response(my_dict, template_name='tort')
+    # return Response(serializer.data, template_name='tort')
 
 @api_view(['Get'])
 def get_calculations_detailed(request, pk, format=None):
@@ -114,15 +119,15 @@ def add_calculation_type(request, pk, format=None):
             try:
                 calculation_type = CalculationTypes.objects.get(calculation_id=calculation_id)
             except CalculationTypes.DoesNotExist:
-                return Response({'error': 'Calculation not found'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Операция для вычислений не найдена'}, status=status.HTTP_404_NOT_FOUND)
 
             calculation_status = calculation_type.calculation_status
             print(calculation_status)
             if calculation_status != "Active":
-                return Response({'error': 'Calculation not found'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Операция для вычислений не найдена'}, status=status.HTTP_404_NOT_FOUND)
             ApplicationsCalculations.objects.create(calculation_id=calculation_id, application_id=inserted_application.application_id)
 
-        return Response({'message': 'Calculation type added to the existing inserted application'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Вид вычислительной операции добавлен в существующую введённую заявку'}, status=status.HTTP_200_OK)
     else:
         print('here')
         current_user = Users.objects.get(user_id=2) #????????
@@ -144,9 +149,9 @@ def add_calculation_type(request, pk, format=None):
                 ApplicationsCalculations.objects.create(calculation_id=calculation_id, application_id=new_application.application_id)
             except CalculationTypes.DoesNotExist:
                 new_application.delete()  
-                return Response({'error': 'Calculation type not found'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Операция для вычислений не найдена'}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response({'message': 'New service application created with the calculation type'}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Новая заявка сформирована с операцией на вычисление'}, status=status.HTTP_201_CREATED)
     
 
 @api_view(["PUT"])
@@ -303,14 +308,14 @@ def delete_application_for_calculation(request, application_id, format=None):
     try:
         user = Users.objects.get(user_id=user_id)
         if user.role != 'Moderator':
-            return Response({'error': 'User does not have Moderator status'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'У пользователя нет статуса "модератор"'}, status=status.HTTP_403_FORBIDDEN)
     except Users.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Пользователь не найден'}, status=status.HTTP_404_NOT_FOUND)
 
     application.application_status = 'Deleted'
     application.save()
 
-    return Response({'message': 'Application deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    return Response({'message': 'Заявка успешно удалена'}, status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['PUT']) 
 def put_applications_moderator(request, pk, format=None):
