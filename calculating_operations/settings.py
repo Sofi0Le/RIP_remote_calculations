@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'drf_yasg',
+
     # DRF
     'rest_framework',
 
@@ -97,6 +99,8 @@ DATABASES = {
         'PASSWORD': 'sleep',
         'HOST': 'localhost',
         'PORT': '5432',
+        'OPTIONS': {'client_encoding': 'utf8'},
+        'TEST_CHARSET': 'utf8'
     }
 }
 
