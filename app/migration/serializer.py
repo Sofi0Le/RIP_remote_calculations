@@ -9,7 +9,7 @@ class CalculationTypesSerializer(serializers.ModelSerializer):
 
     def get_full_url(self, obj):
         image_url = obj.calculation_image_url
-        custom_value = f"http://localhost:9000/pictures/{image_url}"
+        custom_value = f"http://192.168.0.46:9000/pictures/{image_url}" # for 7th laba use ip addres 172.20.10.11 for example
         return custom_value
     class Meta:
         # Модель, которую мы сериализуем

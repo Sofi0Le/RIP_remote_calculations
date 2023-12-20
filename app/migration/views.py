@@ -209,7 +209,7 @@ def get_calculations_detailed(request, pk, format=None):
     '''calculation_type = get_object_or_404(CalculationTypes, pk=pk)
     if calculation_type.calculation_status == "Deleted":
         calculation_type = {}'''
-    calculation_type = CalculationTypes.objects.filter(calculation_id=pk, calculation_status="Deleted").first()
+    calculation_type = CalculationTypes.objects.filter(calculation_id=pk, calculation_status="Active").first()
     if request.method == 'GET':
         serializer = CalculationTypesSerializer(calculation_type)
         return Response(serializer.data)
@@ -397,24 +397,28 @@ def get_applications_list(request, format=None):
     else:
         status = None
     print(start_date)
+    print(end_date)
     print(status)
     if check_moderator(request):
         # if user.role == 'Moderator':
         applications_list = ApplicationForCalculation.objects.all()
-        if (status or start_date):
+        if (status or start_date or end_date):
             if start_date:
-                applications_list = applications_list.filter(date_application_create__gte=start_date)
-                if end_date:
-                    applications_list = applications_list.filter(date_application_create__lte=end_date)
+                applications_list = applications_list.filter(Q(date_application_create__gte=start_date) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
+                print(type(applications_list))
+            if end_date:
+                applications_list = applications_list.filter(Q(date_application_create__lte=end_date) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
             if status:
                 print("aaaa")
-                applications_list = applications_list.filter(application_status=status)
-
+                applications_list = applications_list.filter(Q(application_status=status) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
+                
+        print('here')
         applications_list = applications_list.order_by('-date_application_create')
+        print('here1')
         serializer = ApplicationSerializer(applications_list, many=True)
         return Response(serializer.data)
     else:
-        applications_list = ApplicationForCalculation.objects.filter((Q(application_status="Inserted") | Q(application_status="In service")) & Q(user=user)) # user_id = application.user ????????
+        applications_list = ApplicationForCalculation.objects.filter((Q(application_status="Finished") | Q(application_status="In service") | Q(application_status="Cancelled")) & Q(user=user)) # user_id = application.user ????????
         if start_date:
             applications_list = applications_list.filter(date_application_create__gte=start_date)
             if end_date:
@@ -547,13 +551,20 @@ def put_applications_moderator(request, pk, format=None):
         return Response({"error": "Новый статус не передан"}, status=403)
     print(application.application_status)
     if request.data['application_status'] not in ['Finished', 'Canceled'] or application.application_status == 'Inserted':
+        print('aaaa')
         return Response({"error": "Неверный статус."}, status=403)
+    print('bbbb')
     application.application_status = request.data['application_status']
+    print('ccccc')
     application.date_application_complete = datetime.now()
+    print('dddddd')
     serializer = ApplicationSerializer(application, data=request.data, partial=True)
+    print('fffff')
     if serializer.is_valid():
+        print('ggggg')
         serializer.save()
         return Response(serializer.data)
+    print('hhhhhh')
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @swagger_auto_schema(method='PUT', operation_summary="Change Status (User)", responses={200: 'OK', 403: 'Неверный статус', 400: 'Bad Request'})
