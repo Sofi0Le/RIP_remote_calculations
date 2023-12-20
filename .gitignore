@@ -1,3 +1,4 @@
 env/
 RIP_remote_calculations/
 db/data
+model.py

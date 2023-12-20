@@ -4,9 +4,9 @@ from django.db import models
 class ApplicationForCalculation(models.Model):
     application_id = models.AutoField(primary_key=True)
     user = models.ForeignKey('Users', models.DO_NOTHING, db_column='user')
-    date_application_create = models.DateField(blank=True, null=True)
-    date_application_accept = models.DateField(blank=True, null=True)
-    date_application_complete = models.DateField(blank=True, null=True)
+    date_application_create = models.DateTimeField(blank=True, null=True)
+    date_application_accept = models.DateTimeField(blank=True, null=True)
+    date_application_complete = models.DateTimeField(blank=True, null=True)
     application_status = models.TextField()  # This field type is a guess.
     moderator = models.ForeignKey('Users', models.DO_NOTHING, related_name='applicationforcalculation_moderator_set', blank=True, null=True)
     input_first_param = models.FloatField()

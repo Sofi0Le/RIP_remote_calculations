@@ -214,7 +214,9 @@ def get_applications_list(request, format=None):
     end_date = request.GET.get('end_date')
     status = request.GET.get('status')'''
     data = request.data
-    if data['start_date']:
+
+    if 'start_date' in data:
+        #if data['start_date']:
         start_date = data['start_date']
     else:
         start_date = None
@@ -222,21 +224,25 @@ def get_applications_list(request, format=None):
         end_date = data['end_date']
     else:
         end_date = None
-    if data['status']:
+    if 'status' in data:
+        # if data['status']:
         status = data['status']
     else:
         status = None
     print(start_date)
+    print(end_date)
     print(status)
     applications_list = ApplicationForCalculation.objects.all()
 
-    if start_date:
-        applications_list = applications_list.filter(date_application_create__gte=start_date)
+    if (status or start_date or end_date):
+        if start_date:
+            applications_list = applications_list.filter(Q(date_application_create__gte=start_date) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
+            print(type(applications_list))
         if end_date:
-            applications_list = applications_list.filter(date_application_create__lte=end_date)
-    if status:
-        print("aaaa")
-        applications_list = applications_list.filter(application_status=status)
+            applications_list = applications_list.filter(Q(date_application_create__lte=end_date) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
+        if status:
+            print("aaaa")
+            applications_list = applications_list.filter(Q(application_status=status) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
 
     applications_list = applications_list.order_by('-date_application_create')
     serializer = ApplicationSerializer(applications_list, many=True)
