@@ -456,6 +456,8 @@ def get_application_detailed(request, pk, format=None):
     serializer = ApplicationSerializer(application)
     applications_calculations = ApplicationsCalculations.objects.filter(application_id=pk)
     serializer_apps_calcs = ApplicationsCalculationsSerializer(applications_calculations, many=True)
+    print(serializer_apps_calcs.data)
+
 
     filters = Q()
     print("aaaa")
