@@ -64,7 +64,8 @@ class ApplicationsCalculationsSerializer(serializers.ModelSerializer):
         # Поля, которые мы сериализуем
         fields = [
             "application_id",
-            "calculation"
+            "calculation",
+            "result",
         ]
         
         '''"calculation_id"
