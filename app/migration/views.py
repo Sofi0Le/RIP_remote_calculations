@@ -16,6 +16,10 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from django.utils import timezone
+import requests
+
+from rest_framework.decorators import parser_classes
+from rest_framework.parsers import JSONParser
 
 from django.db.models import Q
 
@@ -28,6 +32,7 @@ from datetime import date
 import hashlib
 import secrets
 from django.http import JsonResponse
+import json
 
 from app.migration.redis_view import (
     set_key,
@@ -105,6 +110,7 @@ def login_view(request, format=None):
     existing_session = request.COOKIES.get('session_key')
     if existing_session and get_value(existing_session):
         return Response({'user_id': get_value(existing_session)})
+        '''return Response({'user_id': get_value(existing_session), 'session_key': existing_session})'''
 
     login_ = request.data.get("login")
     password = request.data.get("password")
@@ -122,6 +128,7 @@ def login_view(request, format=None):
         session_hash = hashlib.sha256(f'{user.user_id}:{login_}:{random_part}'.encode()).hexdigest()
         set_key(session_hash, user.user_id)
 
+        '''response = JsonResponse({'user_id': user.user_id, 'session_key': session_hash})'''
         response = JsonResponse({'user_id': user.user_id})
         response.set_cookie('session_key', session_hash, max_age=86400)
         return response
@@ -410,7 +417,10 @@ def get_applications_list(request, format=None):
                 applications_list = applications_list.filter(Q(date_application_create__lte=end_date) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
             if status:
                 print("aaaa")
-                applications_list = applications_list.filter(Q(application_status=status) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
+                if status in ["Cancelled", "Finished", "In service"]:
+                    applications_list = applications_list.filter(Q(application_status=status) & (Q(application_status="In service") | Q(application_status="Finished") | Q(application_status="Cancelled")))
+        else:
+            applications_list = ApplicationForCalculation.objects.filter((Q(application_status="Finished") | Q(application_status="In service") | Q(application_status="Cancelled")))
                 
         print('here')
         applications_list = applications_list.order_by('-date_application_create')
@@ -421,8 +431,8 @@ def get_applications_list(request, format=None):
         applications_list = ApplicationForCalculation.objects.filter((Q(application_status="Finished") | Q(application_status="In service") | Q(application_status="Cancelled")) & Q(user=user)) # user_id = application.user ????????
         if start_date:
             applications_list = applications_list.filter(date_application_create__gte=start_date)
-            if end_date:
-                applications_list = applications_list.filter(date_application_create__lte=end_date)
+        if end_date:
+            applications_list = applications_list.filter(date_application_create__lte=end_date)
 
         applications_list = applications_list.order_by('-date_application_create')
         serializer = ApplicationSerializer(applications_list, many=True)
@@ -583,9 +593,32 @@ def put_applications_client(request, pk, format=None):
     if request.data['application_status'] != 'In service' or application.application_status != 'Inserted':
         return Response({"error": "Неверный статус."}, status=403)
     print("ssssss")
+
+    try:
+        applications_calculations = ApplicationsCalculations.objects.filter(application=pk)
+        print('am1')
+        post_url = "http://localhost:8080/api/calculate_operations/"
+        calc_req_data = {
+                        "id": application.application_id,
+                        "input_first_param": application.input_first_param,
+                        "input_second_param": application.input_second_param,
+                        "calculations": [
+                            {"calculation_id": applic_calc.calculation.calculation_id} for applic_calc in applications_calculations
+                        ]
+        }
+        print('am2')
+                   
+        response_post = requests.post(post_url, json=calc_req_data)
+        print('am3')
+        response_post.raise_for_status()
+        print('am4')
+
+    except Exception as e:
+        print('ВЫчислительный сервис не отвечает')
+        print(e)
     application.application_status = request.data['application_status']
     print("ffffff")
-    application.date_application_accept = date.today()
+    application.date_application_accept = datetime.now()
     print("wwwwwww")
     serializer = ApplicationSerializer(application, data=request.data, partial=True)
     print("oooooo")
@@ -594,32 +627,66 @@ def put_applications_client(request, pk, format=None):
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['POST'])
+@parser_classes([JSONParser])
+def write_calculating_result(request, format=None):
+    try:
+        data = request.data
+        if not data["token"] or data["token"] != "Hg45ArLPEqiQ7-weSrTGo":
+            print('Forbidden')
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        application_id = data["application_id"]
+        for result_data in data["results"]:
+            calculation_id = result_data["calculation_id"]
+
+            applications_calculations = ApplicationsCalculations.objects.filter(application=application_id, calculation=calculation_id)
+
+            if applications_calculations:
+                print('i am here')
+                print(f'!!!!!{result_data["output_param"]}!!!')
+                if result_data["output_error_param"] != '':
+                    print(f'error with result from async : {result_data["output_error_param"]}')
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                applications_calculations.update(result=result_data["output_param"])
+                print('I am here 2')
+                '''application = ApplicationForCalculation.objects.get(pk=application_id)
+                application.status_application = "Finished"
+                application.date_application_complete = timezone.now()
+                application.save()'''
+
+        return Response(status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(e)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
 @swagger_auto_schema(method='PUT', operation_summary="Update Application", responses={200: 'Успешно', 404: 'Не найдено', 400: 'Bad Request'})
 @api_view(['PUT'])
 def edit_result_applications_calculations(request, pk, calculation_id, format=None):
+    print('zzzzzz')
     if not check_authorize(request) or not check_moderator(request):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+        print('ggggg')
+        return Response({'error403':'Нет доступа'}, status=status.HTTP_403_FORBIDDEN)
     try:
         new_result = request.data.get('new_result')
         print('a')
-        application_calculation = ApplicationsCalculations.objects.filter(application_id=pk, calculation_id=calculation_id).first()
+        application_calculation = ApplicationsCalculations.objects.filter(application=pk, calculation=calculation_id)
         print('b')
         if application_calculation:
             print('aaa')
-            application_calculation.result = new_result
+            # application_calculation.result = new_result
+            application_calculation.update(result=new_result)
             print('bbbbb')
             serializer = ApplicationsCalculationsSerializer(application_calculation, data=request.data, partial=True)
             print('cccccc')
-            if serializer.is_valid():
-                print('dddddd')
-                serializer.save()
-                print('nooooo')
             #return Response(serializer.data)
             print('c')
-            return Response("Успешно", status=status.HTTP_200_OK)
+            return Response({"response": "Успешно"}, status=status.HTTP_200_OK)
         else:
             print('d')
-            return Response("Не найдено", status=status.HTTP_404_NOT_FOUND)
+            return Response({"Не найдено"}, status=status.HTTP_404_NOT_FOUND)
 
     except Exception as e:
         print('e')
