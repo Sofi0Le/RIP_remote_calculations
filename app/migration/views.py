@@ -49,8 +49,11 @@ def check_user(request):
 
 def check_authorize(request):
     response = login_view_get(request._request)
+    print('sssssssssssssssssssssssssssssssss')
     if response.status_code == 200:
         user = Users.objects.get(user_id=response.data.get('user_id'))
+        print(f'!!!!{user}!!!')
+        print('aaaaaaaaaaaaaaaaaaaaa')
         return user
     return None
 
@@ -109,8 +112,8 @@ def registration(request, format=None):
 def login_view(request, format=None):
     existing_session = request.COOKIES.get('session_key')
     if existing_session and get_value(existing_session):
-        return Response({'user_id': get_value(existing_session)})
-        '''return Response({'user_id': get_value(existing_session), 'session_key': existing_session})'''
+        '''return Response({'user_id': get_value(existing_session)})'''
+        return Response({'user_id': get_value(existing_session), 'session_key': existing_session})
 
     login_ = request.data.get("login")
     password = request.data.get("password")
@@ -128,8 +131,8 @@ def login_view(request, format=None):
         session_hash = hashlib.sha256(f'{user.user_id}:{login_}:{random_part}'.encode()).hexdigest()
         set_key(session_hash, user.user_id)
 
-        '''response = JsonResponse({'user_id': user.user_id, 'session_key': session_hash})'''
-        response = JsonResponse({'user_id': user.user_id})
+        response = JsonResponse({'user_id': user.user_id, 'session_key': session_hash})
+        '''response = JsonResponse({'user_id': user.user_id})'''
         response.set_cookie('session_key', session_hash, max_age=86400)
         return response
 
@@ -160,6 +163,8 @@ def logout_view(request):
 # @api_view(['GET'])
 def login_view_get(request, format=None):
     existing_session = request.COOKIES.get('session_key')
+    print(request.headers)
+    print(f'&&&&{existing_session}&&&&')
     if existing_session and get_value(existing_session):
         return Response({'user_id': get_value(existing_session)})
     return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -458,7 +463,6 @@ def get_application_detailed(request, pk, format=None):
     serializer_apps_calcs = ApplicationsCalculationsSerializer(applications_calculations, many=True)
     print(serializer_apps_calcs.data)
 
-
     filters = Q()
     print("aaaa")
     for app_calc in applications_calculations:
@@ -469,6 +473,13 @@ def get_application_detailed(request, pk, format=None):
     else:
         calculation_type = {}
     serializer_calc_types = CalculationTypesSerializer(calculation_type, many=True)
+
+    # Modify each calculation in the response to include the 'result' field
+    for calc_data in serializer_calc_types.data:
+        calc_id = calc_data.get('calculation_id')
+        matching_app_calc = next((app_calc for app_calc in serializer_apps_calcs.data if app_calc['calculation']['calculation_id'] == calc_id), None)
+        if matching_app_calc:
+            calc_data['result'] = matching_app_calc.get('result')
     apps_calcs_data = {
         'application': serializer.data,
         'calculation': serializer_calc_types.data
@@ -650,7 +661,9 @@ def write_calculating_result(request, format=None):
                 print(f'!!!!!{result_data["output_param"]}!!!')
                 if result_data["output_error_param"] != '':
                     print(f'error with result from async : {result_data["output_error_param"]}')
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                    applications_calculations.update(result=-1.0)
+                    # return Response(status=status.HTTP_400_BAD_REQUEST)
+                    return Response(status=status.HTTP_200_OK)
                 applications_calculations.update(result=result_data["output_param"])
                 print('I am here 2')
                 '''application = ApplicationForCalculation.objects.get(pk=application_id)
