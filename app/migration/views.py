@@ -5,6 +5,7 @@ from rest_framework import status as drf_status
 
 from app.migration.serializer import CalculationTypesSerializer
 from app.migration.serializer import ApplicationSerializer
+from app.migration.serializer import ApplicationNewSerializer
 from app.migration.serializer import ApplicationDetailedSerializer
 from app.migration.serializer import ApplicationsCalculationsSerializer
 from app.migration.models import CalculationTypes
@@ -25,6 +26,7 @@ from django.db.models import Q
 
 from minio import Minio
 import os
+from minio.error import S3Error
 from rest_framework.decorators import api_view
 from datetime import datetime
 from datetime import date
@@ -33,6 +35,7 @@ import hashlib
 import secrets
 from django.http import JsonResponse
 import json
+import pytz
 
 from app.migration.redis_view import (
     set_key,
@@ -59,8 +62,12 @@ def check_authorize(request):
 
 def check_moderator(request):
     response = login_view_get(request._request)
+    print('moderator here')
     if response.status_code == 200:
+        print('moderator here1')
         user = Users.objects.get(user_id=response.data.get('user_id'))
+        print('moderator here2')
+        print(f'{user.role=}')
         return user.role == 'Moderator'
     return False
 
@@ -113,7 +120,7 @@ def login_view(request, format=None):
     existing_session = request.COOKIES.get('session_key')
     if existing_session and get_value(existing_session):
         '''return Response({'user_id': get_value(existing_session)})'''
-        return Response({'user_id': get_value(existing_session), 'session_key': existing_session})
+        return Response({'user_id': get_value(existing_session), 'session_key': existing_session, 'username': user.login, 'role':user.role})
 
     login_ = request.data.get("login")
     password = request.data.get("password")
@@ -131,7 +138,7 @@ def login_view(request, format=None):
         session_hash = hashlib.sha256(f'{user.user_id}:{login_}:{random_part}'.encode()).hexdigest()
         set_key(session_hash, user.user_id)
 
-        response = JsonResponse({'user_id': user.user_id, 'session_key': session_hash})
+        response = JsonResponse({'user_id': user.user_id, 'session_key': session_hash, 'username': user.login, 'role':user.role})
         '''response = JsonResponse({'user_id': user.user_id})'''
         response.set_cookie('session_key', session_hash, max_age=86400)
         return response
@@ -148,6 +155,7 @@ def login_view(request, format=None):
 )
 @api_view(['GET'])
 def logout_view(request):
+    print(request.headers)
     session_key = request.COOKIES.get('session_key')
 
     if session_key:
@@ -177,15 +185,29 @@ def get_calculations_list(request, format=None):
     """
     try:
         #inserted_application = get_object_or_404(ApplicationForCalculation,application_status="Inserted")
+        print('a')
         user = check_authorize(request)
+        print('b')
+        response_u = login_view_get(request._request)
+        print('c')
+        cur_user = Users.objects.get(user_id=response_u.data.get('user_id').decode())
+        print('d')
+        print(f'{user=}')
+        print('e')
+        print(f'{cur_user=}')
         print('aaa')
         if user and check_user(request):
             print('bbb')
-            inserted_application = ApplicationForCalculation.objects.filter(Q(application_status="Inserted") & Q(user=user))
+            inserted_application = ApplicationForCalculation.objects.filter(Q(application_status="Inserted") & Q(user=cur_user)).first()
+            print('cccc')
         else:
             inserted_application = None
-        print(f'!!!{inserted_application.application_id}!!!')
+        if inserted_application:
+            print(f'!!!{inserted_application.application_id}!!!')
+        else:
+            print("00000000000000000000000000000000000000000")
     except:
+        print('jojo')
         inserted_application = None
         pass
     print(inserted_application)
@@ -193,9 +215,15 @@ def get_calculations_list(request, format=None):
 
     print('get')
     query = request.GET.get("title")
+    query_s = request.GET.get("status")
     print(query)
-    if query:
+    print(f'{query_s=}')
+    if query and query_s:
+        calculation_types = CalculationTypes.objects.filter(calculation_name__icontains=query)
+    elif query:
         calculation_types = CalculationTypes.objects.filter(calculation_name__icontains=query, calculation_status="Active")
+    elif query_s:
+        calculation_types = CalculationTypes.objects.all()
     else:
         calculation_types = CalculationTypes.objects.filter(calculation_status="Active")
     serializer = CalculationTypesSerializer(calculation_types, many=True)
@@ -240,7 +268,19 @@ def create_calculation_type_s(request, format=None):
 def create_calculation_type(request, format=None):
     if not check_authorize(request) or not check_moderator(request):
         return Response({'error403':'Нет доступа'}, status=status.HTTP_403_FORBIDDEN)
+    request.data['calculation_status'] = "Active"
+    if 'calculation_image_url' not in request.data: 
+        request.data['calculation_image_url'] = "logo.png"
+    print(request.data)
     serializer = CalculationTypesSerializer(data=request.data)
+    print('dddd')
+    if serializer.is_valid():
+        print('ppp')
+        serializer.save()
+        print('ggg')
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    '''serializer = CalculationTypesSerializer(data=request.data)
     if serializer.is_valid():
         if not 'image' in request.data:
             serializer.validated_data['calculation_image_url'] = 'base.png'
@@ -264,15 +304,20 @@ def create_calculation_type(request, format=None):
             except:
                 serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)'''
 
 @swagger_auto_schema(method='POST', operation_summary="Add Calculation Type to Application", request_body=CalculationTypesSerializer, responses={200: 'OK', 404: 'Операция для вычислений не найдена', 403: 'Нет доступа'})
 @api_view(["POST"])
 def add_calculation_type(request, pk, format=None):
+    print('here i am')
+    print(request.headers)
     if not check_authorize(request) or not check_user(request):
         return Response({'error403':'Нет доступа'}, status=status.HTTP_403_FORBIDDEN)
     calculation_id = pk
-    inserted_application = ApplicationForCalculation.objects.filter(application_status='Inserted').first()
+    response_u = login_view_get(request._request)
+    cur_user = Users.objects.get(user_id=response_u.data.get('user_id').decode())
+    print(f'{cur_user=}')
+    inserted_application = ApplicationForCalculation.objects.filter(Q(application_status="Inserted") & Q(user=cur_user)).first()
     if inserted_application:
         print("inserted_application")
 
@@ -296,13 +341,20 @@ def add_calculation_type(request, pk, format=None):
         return Response({'message': 'Вид вычислительной операции добавлен в существующую введённую заявку'}, status=status.HTTP_200_OK)
     else:
         print('here')
+        response_u = login_view_get(request._request)
+        cur_user = Users.objects.get(user_id=response_u.data.get('user_id').decode())
+        print(f'{cur_user=}')
+        print(f'{cur_user.user_id=}')
         current_user = Users.objects.get(user_id=2) #????????
+        print(current_user)
         print('here0')
+        tz = pytz.timezone('Europe/Moscow')
+        print(f'real_time={datetime.now(tz)}')
         new_application = ApplicationForCalculation.objects.create(
-            user=current_user,
+            user=cur_user,
             application_status='Inserted',
-            date_application_create=datetime.now(),
-            moderator_id=1,
+            date_application_create=datetime.now(tz),
+            moderator_id=1, #?????????????????
             input_first_param=1,
             input_second_param=2
         )
@@ -331,7 +383,7 @@ def change_calculation_type_data(request, pk, format=None):
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@swagger_auto_schema(method='PUT', operation_summary="Change Calculation Type Image", request_body=CalculationTypesSerializer, responses={200: CalculationTypesSerializer(), 400: 'Bad Request'})   
+'''@swagger_auto_schema(method='PUT', operation_summary="Change Calculation Type Image", request_body=CalculationTypesSerializer, responses={200: CalculationTypesSerializer(), 400: 'Bad Request'})   
 @api_view(["PUT"])
 def change_calculation_image(request, pk, format=None):
     if not check_authorize(request) or not check_moderator(request):
@@ -370,6 +422,37 @@ def change_calculation_image(request, pk, format=None):
             serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    '''
+
+@api_view(["POST"])
+def calculation_upload_photo(request, format=None):
+    # Check if the request contains the photo file
+    if 'photo' not in request.FILES:
+        return Response({'error': 'Фото не предоставлено'}, status=status.HTTP_400_BAD_REQUEST)
+
+    photo_file = request.FILES['photo']
+    print("got_photo")
+
+    # Generate a unique filename for the photo
+    filename = f"photo_new_{timezone.now().strftime('%Y%m%d%H%M%S')}.jpg"
+
+    try:
+        # Use Minio client to upload the file
+        client.put_object(
+            bucket_name='pictures',
+            object_name=filename,
+            data=photo_file,
+            length=photo_file.size,
+            content_type='png/jpeg',
+        )
+
+        # Construct the URL for the uploaded photo
+        photo_url = f"{filename}"
+
+        return Response({'photo_url': photo_url}, status=status.HTTP_201_CREATED)
+
+    except S3Error as e:
+        return Response({'error': f'Error uploading photo to Minio: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(method='DELETE', operation_summary="Delete Calculation Type", responses={204: 'No Content'})
 @api_view(["Delete"])
@@ -393,8 +476,13 @@ def get_applications_list(request, format=None):
     end_date = request.GET.get('end_date')
     status = request.GET.get('status')'''
     data = request.data
+    print(f'{data=}')
 
-    if 'start_date' in data:
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    status = request.GET.get("status")
+
+    '''if 'start_date' in data:
         #if data['start_date']:
         start_date = data['start_date']
     else:
@@ -407,11 +495,12 @@ def get_applications_list(request, format=None):
         # if data['status']:
         status = data['status']
     else:
-        status = None
+        status = None'''
     print(start_date)
     print(end_date)
     print(status)
     if check_moderator(request):
+        print('i am not alone')
         # if user.role == 'Moderator':
         applications_list = ApplicationForCalculation.objects.all()
         if (status or start_date or end_date):
@@ -430,7 +519,7 @@ def get_applications_list(request, format=None):
         print('here')
         applications_list = applications_list.order_by('-date_application_create')
         print('here1')
-        serializer = ApplicationSerializer(applications_list, many=True)
+        serializer = ApplicationNewSerializer(applications_list, many=True)
         return Response(serializer.data)
     else:
         applications_list = ApplicationForCalculation.objects.filter((Q(application_status="Finished") | Q(application_status="In service") | Q(application_status="Cancelled")) & Q(user=user)) # user_id = application.user ????????
@@ -440,7 +529,7 @@ def get_applications_list(request, format=None):
             applications_list = applications_list.filter(date_application_create__lte=end_date)
 
         applications_list = applications_list.order_by('-date_application_create')
-        serializer = ApplicationSerializer(applications_list, many=True)
+        serializer = ApplicationNewSerializer(applications_list, many=True)
         return Response(serializer.data)
 
 @swagger_auto_schema(method='GET', operation_summary="Get Application Detail", responses={200: ApplicationSerializer()}) # разве ,этот сериализатор????????
@@ -519,18 +608,31 @@ def change_inputs_application(request, pk, format=None):
 
 @swagger_auto_schema(method='DELETE', operation_summary="Delete Calculation Type From Application", responses={200: ApplicationDetailedSerializer(), 400: 'Bad Request'})
 @api_view(["DELETE"])
-def delete_calculation_from_application(request, application_id,
-                                        calculation_id, format=None):
+def delete_calculation_from_application(request, application_id, calculation_id, format=None):
     if not check_authorize(request) or not check_user(request):
-        return Response({'error403':'Нет доступа'}, status=status.HTTP_403_FORBIDDEN)
-    application = get_object_or_404(ApplicationForCalculation, pk=application_id)
+        return Response({'error403': 'Нет доступа'}, status=status.HTTP_403_FORBIDDEN)
 
-    applications_calculations = get_object_or_404(ApplicationsCalculations, application_id=application, calculation_id=calculation_id)
+    application = ApplicationForCalculation.objects.filter(application_id=application_id).first()
+    calculation = CalculationTypes.objects.filter(calculation_id=calculation_id).first()
+    print(f'{application_id=} and {calculation_id=}')
+    if not application:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    try:
+        '''applications_calculations = ApplicationsCalculations.objects.get(application=application, calculation=calculation)
+        print(f'{applications_calculations=}')
+        if applications_calculations:
+            applications_calculations.delete()
+            return Response(status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Запрошеная услуга не найдена в заявке"}, status=status.HTTP_404_NOT_FOUND)'''
+        application_calculation = ApplicationsCalculations.objects.filter(application=application_id, calculation=calculation_id).delete()
+        return Response(status=status.HTTP_200_OK)
+    except ApplicationForCalculation.DoesNotExist:
+        return Response({"error": "Такая заявка не существует"}, status=status.HTTP_404_NOT_FOUND)
 
-    applications_calculations.delete()
 
-    serializer = ApplicationDetailedSerializer(application) #AplSer
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    '''serializer = ApplicationDetailedSerializer(application)
+    return Response(serializer.data, status=status.HTTP_200_OK)'''
 
 @swagger_auto_schema(method='DELETE', operation_summary="Delete Application", responses={204: 'Заявка успешно удалена'})
 @api_view(["DELETE"])
@@ -541,12 +643,13 @@ def delete_application_for_calculation(request, application_id, format=None):
                                     pk=application_id)
     if application.application_status != 'Inserted':
         return Response({"error": "Неверный статус."}, status=400)
-    user_id = request.query_params.get('user_id')
-    print(user_id)
+    response_u = login_view_get(request._request)
+    cur_user = Users.objects.get(user_id=response_u.data.get('user_id').decode())
+    print(f'{cur_user.user_id=}')
 
     try:
-        user = Users.objects.get(user_id=user_id)
-        if user.role != 'Moderator':
+        user = Users.objects.get(user_id=cur_user.user_id)
+        if user.role != 'User':
             return Response({'error': 'У пользователя нет статуса "модератор"'}, status=status.HTTP_403_FORBIDDEN)
     except Users.DoesNotExist:
         return Response({'error': 'Пользователь не найден'}, status=status.HTTP_404_NOT_FOUND)
@@ -563,7 +666,10 @@ def put_applications_moderator(request, pk, format=None):
     """
     Обновляет информацию о заявке модератором
     """
+    print('DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD')
     if not check_authorize(request) or not check_moderator(request):
+        print(f'auth={check_authorize(request)} and mod={check_moderator(request)}')
+        print('problem!!!!!!')
         return Response({'error403':'Нет доступа'}, status=status.HTTP_403_FORBIDDEN)
     application = get_object_or_404(ApplicationForCalculation, pk=pk)
     print(application.application_status)
@@ -573,13 +679,14 @@ def put_applications_moderator(request, pk, format=None):
     else:
         return Response({"error": "Новый статус не передан"}, status=403)
     print(application.application_status)
-    if request.data['application_status'] not in ['Finished', 'Canceled'] or application.application_status == 'Inserted':
+    if request.data['application_status'] not in ['Finished', 'Cancelled'] or application.application_status == 'Inserted':
         print('aaaa')
         return Response({"error": "Неверный статус."}, status=403)
     print('bbbb')
     application.application_status = request.data['application_status']
     print('ccccc')
-    application.date_application_complete = datetime.now()
+    tz = pytz.timezone('Europe/Moscow')
+    application.date_application_complete = datetime.now(tz)
     print('dddddd')
     serializer = ApplicationSerializer(application, data=request.data, partial=True)
     print('fffff')
@@ -631,7 +738,8 @@ def put_applications_client(request, pk, format=None):
         print(e)
     application.application_status = request.data['application_status']
     print("ffffff")
-    application.date_application_accept = datetime.now()
+    tz = pytz.timezone('Europe/Moscow')
+    application.date_application_accept = datetime.now(tz)
     print("wwwwwww")
     serializer = ApplicationSerializer(application, data=request.data, partial=True)
     print("oooooo")
@@ -663,9 +771,9 @@ def write_calculating_result(request, format=None):
                     print(f'error with result from async : {result_data["output_error_param"]}')
                     applications_calculations.update(result=-1.0)
                     # return Response(status=status.HTTP_400_BAD_REQUEST)
-                    return Response(status=status.HTTP_200_OK)
-                applications_calculations.update(result=result_data["output_param"])
-                print('I am here 2')
+                else:
+                    applications_calculations.update(result=result_data["output_param"])
+                    print('I am here 2')
                 '''application = ApplicationForCalculation.objects.get(pk=application_id)
                 application.status_application = "Finished"
                 application.date_application_complete = timezone.now()

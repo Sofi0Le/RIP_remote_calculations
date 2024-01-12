@@ -20,6 +20,7 @@ class CalculationTypesSerializer(serializers.ModelSerializer):
             "calculation_name",
             "calculation_description",
             "calculation_status",
+            "calculation_image_url",
             "full_url"
         ]
 
@@ -59,6 +60,7 @@ class UsersSerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     user = UsersSerializer(read_only=True)
+    moderator = UsersSerializer(read_only=True)
 
     class Meta:
         model = ApplicationForCalculation
@@ -69,12 +71,40 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "date_application_accept",
             "date_application_complete",
             "application_status",
-            "moderator_id",
+            "moderator",
             "input_first_param",
             "input_second_param"
         ]
         '''"input_first_param",
             "input_second_param"'''
+        
+class ApplicationNewSerializer(serializers.ModelSerializer):
+    user = UsersSerializer(read_only=True)
+    moderator = UsersSerializer(read_only=True)
+    count_empty_results = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationForCalculation
+        fields = [
+            "application_id",
+            "user",
+            "date_application_create",
+            "date_application_accept",
+            "date_application_complete",
+            "application_status",
+            "moderator",
+            "input_first_param",
+            "input_second_param",
+            "count_empty_results"  # Include the new field here
+        ]
+
+    def get_count_empty_results(self, obj):
+        # Calculate and return the count_empty_results for the current application
+        count_empty_results = ApplicationsCalculations.objects.filter(
+            application=obj.application_id,
+            result__isnull=False
+        ).count()
+        return count_empty_results
         
 class ApplicationsCalculationsSerializer(serializers.ModelSerializer):
     calculation = CalculationTypesSerializer()
