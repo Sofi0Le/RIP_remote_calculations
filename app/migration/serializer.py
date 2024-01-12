@@ -79,20 +79,34 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "input_second_param"'''
         
 class ApplicationNewSerializer(serializers.ModelSerializer):
-    user = UsersSerializer(read_only=True)
-    moderator = UsersSerializer(read_only=True)
+    user_login = serializers.CharField(source='user.login', read_only=True)
+    moderator_login = serializers.CharField(source='moderator.login', read_only=True)
     count_empty_results = serializers.SerializerMethodField()
 
     class Meta:
         model = ApplicationForCalculation
         fields = [
             "application_id",
-            "user",
+            "user_login",
             "date_application_create",
             "date_application_accept",
             "date_application_complete",
             "application_status",
-            "moderator",
+            "moderator_login",
+            "input_first_param",
+            "input_second_param"
+        ]
+
+    class Meta:
+        model = ApplicationForCalculation
+        fields = [
+            "application_id",
+            "user_login",
+            "date_application_create",
+            "date_application_accept",
+            "date_application_complete",
+            "application_status",
+            "moderator_login",
             "input_first_param",
             "input_second_param",
             "count_empty_results"  # Include the new field here

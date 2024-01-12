@@ -354,7 +354,7 @@ def add_calculation_type(request, pk, format=None):
             user=cur_user,
             application_status='Inserted',
             date_application_create=datetime.now(tz),
-            moderator_id=1, #?????????????????
+            moderator_id=6, #?????????????????
             input_first_param=1,
             input_second_param=2
         )
