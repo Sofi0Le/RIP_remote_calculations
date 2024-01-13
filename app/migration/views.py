@@ -168,7 +168,7 @@ def logout_view(request):
     else:
         return JsonResponse({'error': 'Вы не авторизованы'}, status=status.HTTP_401_UNAUTHORIZED)
     
-# @api_view(['GET'])
+
 def login_view_get(request, format=None):
     existing_session = request.COOKIES.get('session_key')
     print(request.headers)
@@ -354,12 +354,11 @@ def add_calculation_type(request, pk, format=None):
             user=cur_user,
             application_status='Inserted',
             date_application_create=datetime.now(tz),
-            moderator_id=6, #?????????????????
+            moderator_id=6,
             input_first_param=1,
             input_second_param=2
         )
         print('here1')
-        #calculation_id = request.data['calculation_id']
         print(f"calculation_id = {calculation_id}")
         if calculation_id:
             try:
@@ -446,7 +445,6 @@ def calculation_upload_photo(request, format=None):
             content_type='png/jpeg',
         )
 
-        # Construct the URL for the uploaded photo
         photo_url = f"{filename}"
 
         return Response({'photo_url': photo_url}, status=status.HTTP_201_CREATED)

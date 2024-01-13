@@ -61,7 +61,7 @@ urlpatterns = [
     path(r'api/applications/<int:pk>/change_status/moderator/', views.put_applications_moderator, name='application_status_by_moderator'),
     path(r'api/applications/<int:pk>/change_status/client/', views.put_applications_client, name='application_status_by_client'),
 
-    path(r'api/applications/write_result_calculating/', views.write_calculating_result, name='write_result_calculating'),
+    path(r'api/applications_calculations/write_result_calculating/', views.write_calculating_result, name='write_result_calculating'),
 
     path(r'api/applications_calculations/<int:pk>/<int:calculation_id>/', views.edit_result_applications_calculations, name='edit_result_applications_calculations'),
     path(r'api/applications_calculations/<int:application_id>/operations_delete/<int:calculation_id>/', views.delete_calculation_from_application,name='delete_calculation_from_application'),
