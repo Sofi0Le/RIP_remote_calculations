@@ -38,19 +38,19 @@ class UsersSerializer(serializers.ModelSerializer):
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    user = UsersSerializer(read_only=True)
-    moderator = UsersSerializer(read_only=True)
+    user_login = serializers.CharField(source='user.login', read_only=True)
+    moderator_login = serializers.CharField(source='moderator.login', read_only=True)
 
     class Meta:
         model = ApplicationForCalculation
         fields = [
             "application_id",
-            "user",
+            "user_login",
             "date_application_create",
             "date_application_accept",
             "date_application_complete",
             "application_status",
-            "moderator",
+            "moderator_login",
             "input_first_param",
             "input_second_param"
         ]
