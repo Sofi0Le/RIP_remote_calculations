@@ -94,22 +94,8 @@ class ApplicationNewSerializer(serializers.ModelSerializer):
             "application_status",
             "moderator_login",
             "input_first_param",
-            "input_second_param"
-        ]
-
-    class Meta:
-        model = ApplicationForCalculation
-        fields = [
-            "application_id",
-            "user_login",
-            "date_application_create",
-            "date_application_accept",
-            "date_application_complete",
-            "application_status",
-            "moderator_login",
-            "input_first_param",
             "input_second_param",
-            "count_empty_results"  # Include the new field here
+            "count_empty_results" 
         ]
 
     def get_count_empty_results(self, obj):
