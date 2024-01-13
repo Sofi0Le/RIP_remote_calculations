@@ -157,6 +157,16 @@ def login_view(request, format=None):
 def logout_view(request):
     print(request.headers)
     session_key = request.COOKIES.get('session_key')
+    #cur_user= check_authorize(request)
+    response_u = login_view_get(request._request)
+    print('c')
+    cur_user = Users.objects.get(user_id=response_u.data.get('user_id').decode())
+    draft_service_applications = ApplicationForCalculation.objects.filter(application_status="Inserted", user=cur_user)
+    for service_app in draft_service_applications:
+        applications_calculations = ApplicationsCalculations.objects.filter(application=service_app)
+
+        applications_calculations.delete()
+    draft_service_applications.delete()
 
     if session_key:
         if not get_value(session_key):
