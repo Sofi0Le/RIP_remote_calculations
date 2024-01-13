@@ -128,7 +128,6 @@ def login_view(request, format=None):
         session_hash = hashlib.sha256(f'{user.user_id}:{login_}:{random_part}'.encode()).hexdigest()
         set_key(session_hash, user.user_id)
 
-        '''response = JsonResponse({'user_id': user.user_id, 'session_key': session_hash})'''
         response = JsonResponse({'user_id': user.user_id})
         response.set_cookie('session_key', session_hash, max_age=86400)
         return response
