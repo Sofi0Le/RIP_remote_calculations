@@ -39,6 +39,7 @@ class UsersSerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     user = UsersSerializer(read_only=True)
+    moderator = UsersSerializer(read_only=True)
 
     class Meta:
         model = ApplicationForCalculation
@@ -49,7 +50,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "date_application_accept",
             "date_application_complete",
             "application_status",
-            "moderator_id",
+            "moderator",
             "input_first_param",
             "input_second_param"
         ]
